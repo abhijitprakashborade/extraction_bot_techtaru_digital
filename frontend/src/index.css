@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+  ::selection { background: rgba(99, 102, 241, 0.4); color: #fff; }
+  html { scroll-behavior: smooth; }
+
+  /* react-json-view-lite dark theme overrides */
+  .json-view { background: transparent !important; --json-key-color: #a5b4fc; }
+}

@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend — import & API smoke
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: App boots without API key (demo engine)
+        run: |
+          python - <<'PY'
+          from app.main import app
+          from app.services.extractor import engine_name
+          assert engine_name() == "heuristic-demo", "expected demo engine without a key"
+          print("OK — app imports, routes registered, demo engine active")
+          PY
+      - name: Health & extraction smoke test
+        run: |
+          python - <<'PY'
+          import json
+          from fastapi.testclient import TestClient
+          from app.main import app
+          with TestClient(app) as client:
+              r = client.get("/health")
+              assert r.status_code == 200 and r.json()["status"] == "ok", r.text
+              r = client.post("/api/v1/extract/text", json={
+                  "text": "Invoice #: INV-1\nBill To: X\nSubtotal: 100\nTax: 10\nTotal: 110\n",
+                  "document_type": "INVOICE",
+              })
+              assert r.status_code == 200, r.text
+              assert r.json()["data"]["total_amount"] == 110.0
+              print("OK — /health and /extract/text behave as expected")
+          PY
+
+  frontend:
+    name: Frontend — typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
